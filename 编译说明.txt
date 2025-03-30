@@ -1,0 +1,47 @@
+# TS到MP4转换器 - 编译说明
+
+## 编译前准备
+
+要编译此项目并生成可执行文件，您需要安装以下工具：
+
+1. .NET SDK 6.0 或更高版本
+   - 下载地址：https://dotnet.microsoft.com/download/dotnet/6.0
+   - 选择适合您系统的SDK安装程序（如Windows x64）
+
+## 编译步骤
+
+安装完.NET SDK后，请按照以下步骤操作：
+
+1. 打开命令提示符或PowerShell
+2. 导航到项目目录或直接使用完整路径
+3. 执行以下命令编译项目：
+
+```
+dotnet publish h:\Code\TStoMP4Converter\TStoMP4Converter.csproj -c Release -r win-x64 --self-contained true
+```
+
+## 编译输出
+
+编译成功后，可执行文件将位于以下目录：
+```
+h:\Code\TStoMP4Converter\bin\Release\net6.0-windows\win-x64\publish\TStoMP4Converter.exe
+```
+
+## 注意事项
+
+1. 编译后的文件夹中包含应用程序运行所需的所有依赖项，可以将整个publish文件夹复制到其他计算机使用。
+2. 确保FFmpeg.exe文件放置在应用程序目录下的FFmpeg文件夹中，否则应用程序将无法正常工作。
+3. 如果您使用Visual Studio，也可以直接在Visual Studio中打开解决方案文件(.sln)，然后选择"发布"选项来生成可执行文件。
+
+## 使用自包含部署
+
+上述命令中的`--self-contained true`参数会将.NET运行时一起打包到发布文件夹中，这样应用程序就可以在没有安装.NET运行时的计算机上运行。如果您想减小文件大小，并且确保目标计算机已安装.NET 6.0运行时，可以移除此参数。
+
+## 故障排除
+
+如果编译过程中遇到问题：
+
+1. 确保已正确安装.NET SDK 6.0或更高版本
+2. 检查项目文件中的依赖项是否可用
+3. 尝试先执行`dotnet restore`命令恢复所有包依赖
+4. 如果出现编译错误，请检查错误信息并解决相应问题
