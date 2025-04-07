@@ -28,6 +28,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Services\run.bat">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Models\" />
     <Folder Include="ViewModels\" />
     <Folder Include="Views\" />

@@ -35,6 +35,8 @@ namespace TStoMP4Converter
         private readonly TaskManagerService _taskManagerService;
         private readonly LoggingService _loggingService;
 
+// 删除重复声明的字段，因为在文件开头已经声明过 _selectedFolderPath
+        
         public MainWindow()
         {
             InitializeComponent();
@@ -118,7 +120,7 @@ namespace TStoMP4Converter
             }
         }
 
-        private void BtnStartConversion_Click(object sender, RoutedEventArgs e)
+        private async void BtnStartConversion_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(_selectedFolderPath))
             {
@@ -142,15 +144,33 @@ namespace TStoMP4Converter
             _isConverting = true;
             UpdateUIState(_isConverting);
             
-            // 获取设置
-            bool useHardwareAcceleration = HardwareAccelerationToggle.IsChecked ?? false;
-            int threadCount = (int)ThreadCountSlider.Value;
-            
             // 更新状态
             StatusText.Text = $"开始转换 {_fileList.Count(f => f.Status == "等待中" || f.Status == "失败")} 个文件";
             
-            // 启动转换任务
-            Task.Run(() => _conversionTaskService.StartConversionAsync(_fileList.ToList(), threadCount, useHardwareAcceleration));
+            try
+            {
+                // 使用ConversionTaskService进行转换
+                bool hardwareAcceleration = HardwareAccelerationToggle.IsChecked ?? false;
+                int threadCount = (int)ThreadCountSlider.Value;
+                
+                // 在后台线程中启动转换任务
+                await _conversionTaskService.StartConversionAsync(
+                    _fileList.Where(f => f.Status == "等待中" || f.Status == "失败").ToList(),
+                    threadCount,
+                    hardwareAcceleration);
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.Invoke(() => 
+                {
+                    System.Windows.MessageBox.Show($"执行转换时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                });
+            }
+            finally
+            {
+                _isConverting = false;
+                UpdateUIState(_isConverting);
+            }
         }
 
         private void BtnStopConversion_Click(object sender, RoutedEventArgs e)

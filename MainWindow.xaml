@@ -197,6 +197,24 @@
             </Grid>
         </Grid>
         
+        <!-- 日志显示区域 -->
+        <Grid Grid.Row="2" Margin="16,0,16,8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="200"/>
+            </Grid.RowDefinitions>
+            
+            <TextBlock Text="日志" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"/>
+            
+            <TextBox x:Name="LogTextBox" Grid.Row="1" 
+                     IsReadOnly="True" 
+                     VerticalScrollBarVisibility="Auto" 
+                     HorizontalScrollBarVisibility="Auto" 
+                     TextWrapping="Wrap" 
+                     BorderThickness="1" 
+                     BorderBrush="{DynamicResource MaterialDesignDivider}"/>
+        </Grid>
+        
         <!-- 底部状态栏 -->
         <StatusBar Grid.Row="2" Background="{DynamicResource PrimaryHueLightBrush}">
             <StatusBarItem>

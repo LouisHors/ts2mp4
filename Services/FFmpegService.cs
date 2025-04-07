@@ -28,7 +28,6 @@ namespace TStoMP4Converter.Services
                     process.StartInfo.FileName = _ffmpegPath;
                     process.StartInfo.Arguments = $"-i \"{filePath}\"";
                     process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.CreateNoWindow = true;
                     process.StartInfo.RedirectStandardError = true;
                     process.StartInfo.RedirectStandardOutput = true;
 
@@ -81,12 +80,11 @@ namespace TStoMP4Converter.Services
                 // 准备FFmpeg命令
                 string hwAccelParam = useHardwareAcceleration ? "-hwaccel auto" : "";
 
-                using (var process = new Process())
+                using Process process = new();
                 {
                     process.StartInfo.FileName = _ffmpegPath;
-                    process.StartInfo.Arguments = $"{hwAccelParam} -i \"{inputPath}\" -c:v libx264 -c:a aac -strict experimental \"{outputPath}\"";
+                    process.StartInfo.Arguments = $" {hwAccelParam} -i \"{inputPath}\" -f mp4 -codec copy \"{outputPath}\"";
                     process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.CreateNoWindow = true;
                     process.StartInfo.RedirectStandardError = true;
                     process.StartInfo.RedirectStandardOutput = true;
 
@@ -99,7 +97,7 @@ namespace TStoMP4Converter.Services
                         string line;
                         var timeRegex = new Regex(@"time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})");
 
-                        while ((line = process.StandardError.ReadLine()) != null)
+                        while ((line = process.StandardError.ReadLine()!) != null)
                         {
                             var match = timeRegex.Match(line);
                             if (match.Success)
