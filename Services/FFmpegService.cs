@@ -4,16 +4,19 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace TStoMP4Converter.Services
 {
     public class FFmpegService
     {
         private readonly string _ffmpegPath;
+        private readonly LoggingService _loggingService;
 
-        public FFmpegService(string ffmpegPath)
+        public FFmpegService(string ffmpegPath, LoggingService loggingService)
         {
             _ffmpegPath = ffmpegPath;
+            _loggingService = loggingService;
         }
 
         /// <summary>
@@ -79,6 +82,7 @@ namespace TStoMP4Converter.Services
 
                 // 准备FFmpeg命令
                 string hwAccelParam = useHardwareAcceleration ? "-hwaccel auto" : "";
+                StringBuilder outputLogBuilder = new StringBuilder();
 
                 using Process process = new();
                 {
@@ -87,47 +91,63 @@ namespace TStoMP4Converter.Services
                     process.StartInfo.UseShellExecute = false;
                     process.StartInfo.RedirectStandardError = true;
                     process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.CreateNoWindow = true;
 
                     // 启动进程
                     process.Start();
 
-                    // 读取FFmpeg输出以更新进度
-                    var progressTask = Task.Run(() =>
+                    // 异步读取 stderr
+                    var progressTask = Task.Run(async () =>
                     {
                         string line;
                         var timeRegex = new Regex(@"time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})");
 
-                        while ((line = process.StandardError.ReadLine()!) != null)
+                        // 使用 StreamReader 异步读取
+                        using (var reader = process.StandardError)
                         {
-                            var match = timeRegex.Match(line);
-                            if (match.Success)
+                            while ((line = await reader.ReadLineAsync()) != null)
                             {
-                                try
-                                {
-                                    int hours = int.Parse(match.Groups[1].Value);
-                                    int minutes = int.Parse(match.Groups[2].Value);
-                                    int seconds = int.Parse(match.Groups[3].Value);
-                                    int milliseconds = int.Parse(match.Groups[4].Value) * 10;
+                                // 记录原始 FFmpeg 输出到日志
+                                await _loggingService.LogInfoAsync($"[FFmpeg] {line}");
+                                outputLogBuilder.AppendLine(line);
 
-                                    var currentTime = new TimeSpan(0, hours, minutes, seconds, milliseconds);
-                                    double progressValue = (currentTime.TotalMilliseconds / totalDuration.TotalMilliseconds) * 100;
-                                    progressValue = Math.Min(progressValue, 99); // 限制最大进度为99%
-
-                                    progress?.Report(progressValue);
-                                }
-                                catch
+                                // 尝试匹配时间以更新进度
+                                var match = timeRegex.Match(line);
+                                if (match.Success)
                                 {
-                                    // 忽略解析错误
+                                    try
+                                    {
+                                        int hours = int.Parse(match.Groups[1].Value);
+                                        int minutes = int.Parse(match.Groups[2].Value);
+                                        int seconds = int.Parse(match.Groups[3].Value);
+                                        int milliseconds = int.Parse(match.Groups[4].Value) * 10;
+
+                                        var currentTime = new TimeSpan(0, hours, minutes, seconds, milliseconds);
+                                        // 防止 totalDuration 为零导致除零错误
+                                        if (totalDuration.TotalMilliseconds > 0)
+                                        {
+                                            double progressValue = (currentTime.TotalMilliseconds / totalDuration.TotalMilliseconds) * 100;
+                                            progressValue = Math.Min(progressValue, 99); // 限制最大进度为99%
+                                            progress?.Report(progressValue);
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        // 忽略解析错误
+                                    }
                                 }
+
+                                if (cancellationToken.IsCancellationRequested)
+                                    break;
                             }
-
-                            if (cancellationToken.IsCancellationRequested)
-                                break;
                         }
                     }, cancellationToken);
-
+                    
+                    // 等待读取任务完成
+                    await progressTask; 
+                    
                     // 等待进程完成或取消
-                    await Task.Run(() =>
+                    await Task.Run(async () =>
                     {
                         while (!process.HasExited)
                         {
@@ -143,33 +163,36 @@ namespace TStoMP4Converter.Services
                                 }
                                 cancellationToken.ThrowIfCancellationRequested();
                             }
-                            Thread.Sleep(100);
+                            await Task.Delay(100, cancellationToken);
                         }
                     }, cancellationToken);
 
-                    // 获取完整的输出日志
-                    string outputLog = await process.StandardError.ReadToEndAsync();
+                    // 获取最终的退出代码
+                    int exitCode = -1; 
+                    try { exitCode = process.ExitCode; } catch { /* 可能进程已被kill */ }
+
+                    string finalOutputLog = outputLogBuilder.ToString();
                     
                     // 检查进程退出代码
-                    if (process.ExitCode != 0)
+                    if (exitCode != 0)
                     {
-                        string errorMessage = $"FFmpeg转换失败，退出代码: {process.ExitCode}";
-                        if (!string.IsNullOrEmpty(outputLog))
+                        string errorMessage = $"FFmpeg转换失败，退出代码: {exitCode}";
+                        if (!string.IsNullOrEmpty(finalOutputLog))
                         {
                             // 尝试从输出中提取错误信息
-                            var errorRegex = new Regex(@"(Error|错误).+");
-                            var match = errorRegex.Match(outputLog);
+                            var errorRegex = new Regex(@"(Error|错误).+", RegexOptions.IgnoreCase);
+                            var match = errorRegex.Match(finalOutputLog);
                             if (match.Success)
                             {
                                 errorMessage += $"\n详细错误: {match.Value}";
                             }
                         }
-                        return (false, errorMessage, outputLog);
+                        return (false, errorMessage, finalOutputLog);
                     }
 
                     // 转换成功
                     progress?.Report(100);
-                    return (true, string.Empty, outputLog);
+                    return (true, string.Empty, finalOutputLog);
                 }
             }
             catch (OperationCanceledException)

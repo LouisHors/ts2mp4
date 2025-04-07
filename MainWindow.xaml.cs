@@ -35,8 +35,6 @@ namespace TStoMP4Converter
         private readonly TaskManagerService _taskManagerService;
         private readonly LoggingService _loggingService;
 
-// 删除重复声明的字段，因为在文件开头已经声明过 _selectedFolderPath
-        
         public MainWindow()
         {
             InitializeComponent();
@@ -46,10 +44,10 @@ namespace TStoMP4Converter
             
             // 初始化服务
             string ffmpegPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "FFmpeg", "ffmpeg.exe");
-            _ffmpegService = new FFmpegService(ffmpegPath);
+            _loggingService = new LoggingService();
+            _ffmpegService = new FFmpegService(ffmpegPath, _loggingService);
             _systemMonitorService = new SystemMonitorService();
             _taskManagerService = new TaskManagerService();
-            _loggingService = new LoggingService();
             _conversionTaskService = new ConversionTaskService(_ffmpegService, _systemMonitorService, _loggingService);
             
             // 注册事件处理程序
@@ -60,6 +58,9 @@ namespace TStoMP4Converter
             _conversionTaskService.ConversionProgressChanged += ConversionTaskService_ConversionProgressChanged;
             _conversionTaskService.ThreadCountChanged += ConversionTaskService_ThreadCountChanged;
             _conversionTaskService.ConversionCompleted += ConversionTaskService_ConversionCompleted;
+            
+            // 订阅 LoggingService 的 LogReceived 事件
+            _loggingService.LogReceived += LoggingService_LogReceived;
             
             // 初始化系统资源监控定时器
             _resourceMonitorTimer = new DispatcherTimer
@@ -442,6 +443,19 @@ namespace TStoMP4Converter
                     System.Windows.MessageBox.Show($"加载任务时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+        }
+
+        // LoggingService.LogReceived 事件处理程序
+        private void LoggingService_LogReceived(object sender, string logEntry)
+        {
+            // 确保在 UI 线程上更新 TextBox
+            Dispatcher.Invoke(() =>
+            {
+                // 追加日志条目并添加换行符
+                LogTextBox.AppendText(logEntry);
+                // 自动滚动到底部
+                LogTextBox.ScrollToEnd();
+            });
         }
     }
 

@@ -35,7 +35,7 @@ namespace TStoMP4Converter.Services
             _ffmpegService = ffmpegService;
             _systemMonitorService = systemMonitorService;
             _loggingService = loggingService;
-            _maxThreadCount = 2; // 默认线程数
+            _maxThreadCount = 1; // 将默认线程数改为 1
             _useHardwareAcceleration = true; // 默认启用硬件加速
         }
 

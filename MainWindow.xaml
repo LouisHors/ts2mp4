@@ -115,7 +115,7 @@
                     <!-- 线程设置 -->
                     <TextBlock Text="线程数量" Margin="0,0,0,8" FontWeight="Medium"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                        <Slider x:Name="ThreadCountSlider" Width="200" Minimum="1" Maximum="8" Value="2" 
+                        <Slider x:Name="ThreadCountSlider" Width="200" Minimum="1" Maximum="8" Value="1" 
                                 IsSnapToTickEnabled="True" TickFrequency="1" TickPlacement="BottomRight"/>
                         <TextBlock Text="{Binding ElementName=ThreadCountSlider, Path=Value, StringFormat=N0}" 
                                    Margin="16,0,0,0" VerticalAlignment="Center"/>
@@ -187,7 +187,7 @@
                     <Button x:Name="BtnStopConversion" Click="BtnStopConversion_Click" 
                             Style="{StaticResource MaterialDesignRaisedButton}" 
                             Background="{DynamicResource MaterialDesignDarkForeground}" 
-                            Foreground="White" Height="40">
+                            Foreground="Black" Height="40">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Stop" Width="24" Height="24" VerticalAlignment="Center"/>
                             <TextBlock Text="停止转换" Margin="8,0,0,0" VerticalAlignment="Center"/>
@@ -201,7 +201,7 @@
         <Grid Grid.Row="2" Margin="16,0,16,8">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="200"/>
+                <RowDefinition Height="100"/>
             </Grid.RowDefinitions>
             
             <TextBlock Text="日志" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"/>

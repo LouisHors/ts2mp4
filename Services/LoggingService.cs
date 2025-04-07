@@ -14,6 +14,9 @@ namespace TStoMP4Converter.Services
         private readonly string _conversionLogDirectory;
         private readonly object _lockObj = new object();
 
+        // 定义日志接收事件
+        public event EventHandler<string> LogReceived;
+
         public LoggingService()
         {
             // 在应用程序目录下创建log文件夹
@@ -161,12 +164,21 @@ namespace TStoMP4Converter.Services
                     }
                 }
                 
+                // 触发日志接收事件，将格式化后的日志条目传递给订阅者
+                OnLogReceived(logEntry);
+
                 await Task.CompletedTask; // 为了保持异步签名
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"写入日志时出错: {ex.Message}");
             }
+        }
+
+        // 触发日志接收事件的方法
+        protected virtual void OnLogReceived(string logEntry)
+        {
+            LogReceived?.Invoke(this, logEntry);
         }
 
         /// <summary>
